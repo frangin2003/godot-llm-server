@@ -1,0 +1,7 @@
+models/
+model_state.pt
+TTS-dev/
+pretrained_models/
+pretrained_model/
+my/
+.env
