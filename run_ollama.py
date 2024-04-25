@@ -4,13 +4,12 @@ from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHan
 import time
 
 start_time = time.time()
-llm_ollama = Ollama(model="hermes2pro-mistral-7b-q4")
+llm_ollama = Ollama(model="llama3", callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),)
 print(f"Time taken to create Ollama object: {time.time() - start_time} seconds")
 
 start_time = time.time()
-result = llm_ollama.invoke("Tell me a joke")
+llm_ollama("Tell me a joke")
 print(f"Time taken to invoke and print the result: {time.time() - start_time} seconds")
-print(result)
 
 start_time = time.time()
 llm_llamacpp = LlamaCpp(
