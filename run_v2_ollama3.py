@@ -148,17 +148,33 @@ async def a_call_llm(websocket, data):
     capturing_response = False
     capturing_command = False
 
+#  see https://github.com/langchain-ai/langchain/issues/13333
+# class TestLangchainAsync(unittest.IsolatedAsyncioTestCase):
+#     async def test_aiter(self):
+#         handler = AsyncIteratorCallbackHandler()
+#         llm = OpenAI(
+#             temperature=0,
+#             streaming=True,
+#             callbacks=[handler],
+#             openai_api_key="sk-xxxxx",
+#             openai_proxy="http://127.0.0.1:7890",
+#         )
+#         prompt = PromptTemplate(
+#             input_variables=["product"],
+#             template="What is a good name for a company that makes {product}?",
+#         )
+#         prompt = prompt.format(product="colorful socks")
+#         asyncio.create_task(llm.agenerate([prompt]))
+#         async for i in handler.aiter():
+#             print(i)
     await websocket.send("<|begin_of_text|>")
     for chunk in llm._stream(prompt):
-        print("***************************************")
         chunk_text = chunk.text
-        print(f"chunk_text=|{chunk_text}|")
+        # print(chunk_text)
 
         # Clean and manage the buffer
         chunk_text = chunk_text.replace('","', '').replace(',"', '').replace('",', '').replace('"', '').replace('{', '').replace('}', '').replace(':', '').replace('=', '')
-        print(f"chunk_text=|{chunk_text}| SANITIZED")
         buffer += chunk_text
-        print(f"buffer=|{buffer}|")
         if (chunk_text.strip() == "_"
             and buffer != "_text" and buffer != "_command"
             and buffer != "_text_" and buffer != "_command_"):
@@ -166,18 +182,15 @@ async def a_call_llm(websocket, data):
             continue
 
         if (buffer == "_text" or buffer == "_command"):
-            print(' if (buffer == "_text" or buffer == "_command"):')
             continue
 
         # Check and transition based on keywords
         if buffer == "_text_":
-            print(' if buffer == "_text":')
             capturing_response = True
             buffer = ""  # Reset buffer after detecting keyword
             continue
 
         elif buffer == "_command_":
-            print(' elif "_command_" in buffer:')
             capturing_response = False
             capturing_command = True
             buffer = ""  # Reset buffer after detecting keyword
@@ -185,17 +198,15 @@ async def a_call_llm(websocket, data):
 
         # Accumulate content into the response or command based on the current state
         if capturing_response:
-            print(' if capturing_response:')
             text += chunk_text
-            print(f'text=|{text}|')
+            print(chunk_text)
             await websocket.send(chunk_text)
         elif capturing_command:
-            print(' elif capturing_command:')
             command += chunk_text
-            print(f'command=|{command}|')
 
     import threading
-    threading.Thread(target=speak_async, args=(text,)).start()
+    #  no speak
+    # threading.Thread(target=speak_async, args=(text,)).start()
 
 
     print(f'FINAL command=|{command}|')
