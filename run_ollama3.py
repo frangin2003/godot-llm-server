@@ -24,18 +24,21 @@ async def a_call_llm(websocket, data):
     
     prompt = get_llama3_prompt_from_messages(data, True)
     command = ""
+    all_chunks = ""
     buffer = ""
     text = ""
     capturing_response = False
     capturing_command = False
+    at_least_one_chunk_has_been_sent = False
 
     await websocket.send("<|begin_of_text|>")
     for chunk in llm._stream(prompt):
         chunk_text = chunk.text
         # print(chunk_text)
-
         # Clean and manage the buffer
-        chunk_text = chunk_text.replace('","', '').replace(',"', '').replace('",', '').replace('"', '').replace('{', '').replace('}', '').replace(':', '').replace('=', '')
+        chunk_text = chunk_text.replace('","', '').replace(',"', '').replace('",', '').replace('"', '').replace('{', '').replace('}', '').replace(':', '').replace('=', '').replace('```', '')
+        all_chunks += chunk_text
+        
         buffer += chunk_text
         if (chunk_text.strip() == "_"
             and buffer != "_text" and buffer != "_command"
@@ -60,16 +63,19 @@ async def a_call_llm(websocket, data):
 
         # Accumulate content into the response or command based on the current state
         if capturing_response:
+            at_least_one_chunk_has_been_sent = True
             text += chunk_text
             print(chunk_text)
             await websocket.send(chunk_text)
         elif capturing_command:
             command += chunk_text
 
-    import threading
+    # import threading
     #  no speak
-    # threading.Thread(target=speak_async, args=(text,)).start()
+    # threading.Thread(target=tts_async, args=(text,)).start()
 
+    if not at_least_one_chunk_has_been_sent:
+        await websocket.send(all_chunks)
 
     print(f'FINAL command=|{command}|')
     if command:
