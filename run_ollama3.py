@@ -4,6 +4,7 @@ import json
 from langchain_community.llms import Ollama
 from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
 from prompt_utils import get_llama3_prompt_from_messages
+from tts_utils import tts_async
 
 llm = Ollama(
     model="llama3",
@@ -13,10 +14,11 @@ llm = Ollama(
     stop=["<|eot_id|>"],
 )
 
-import win32com.client
-
 # Global initialization of COM and speech object
+import win32com.client
 global_speaker = win32com.client.Dispatch("SAPI.SpVoice")
+global_speaker.Voice = global_speaker.GetVoices().Item(0)
+
 
 # Simulated LLM function
 async def a_call_llm(websocket, data):
@@ -70,12 +72,12 @@ async def a_call_llm(websocket, data):
         elif capturing_command:
             command += chunk_text
 
-    # import threading
-    #  no speak
-    # threading.Thread(target=tts_async, args=(text,)).start()
+    import threading
+    threading.Thread(target=tts_async, args=(global_speaker, text,)).start()
 
     if not at_least_one_chunk_has_been_sent:
         await websocket.send(all_chunks)
+    print(all_chunks)
 
     print(f'FINAL command=|{command}|')
     if command:
@@ -86,6 +88,7 @@ async def a_call_llm(websocket, data):
 async def websocket_handler(websocket, path):
     async for message in websocket:
         data = json.loads(message)
+        print(json.dumps(data, indent=4))
         await a_call_llm(websocket, data)
 
 start_server = websockets.serve(websocket_handler, "localhost", 8765)

@@ -13,13 +13,17 @@ load_dotenv()
 llm = ChatOpenAI(
     model="gpt-4-turbo",
     api_key=os.getenv("API_KEY"),
-    temperature=0.2,
-    top_p=0.1,
-    # top_k=50,
+    temperature=0.0,
+    model_kwargs={"top_p":0.1},
     max_tokens=1000,
     streaming=True,
     callbacks=[StreamingStdOutCallbackHandler()],
 )
+
+# Global initialization of COM and speech object
+import win32com.client
+global_speaker = win32com.client.Dispatch("SAPI.SpVoice")
+global_speaker.Voice = global_speaker.GetVoices().Item(0)
 
 async def a_call_llm(websocket, data):
     # print("Calling LLM with base64 data URL:", data['messages'][1]['content'][1]['image']['url'])
@@ -93,10 +97,8 @@ async def a_call_llm(websocket, data):
 
     print(all_chunks)
 
-    # import threading
-    #  no speak
-    # threading.Thread(target=tts_async, args=(text,)).start()
-
+    import threading
+    threading.Thread(target=tts_async, args=(global_speaker, text,)).start()
 
     print(f'FINAL command=|{command}|')
     if command:

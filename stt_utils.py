@@ -6,7 +6,7 @@ from io import BytesIO
 def recognize_speech_from_audio_url(audio_url):
     with open(audio_url, 'rb') as audio_file:
         audio_data = audio_file.read()
-    recognize_speech_from_audio_data(audio_data)
+    return recognize_speech_from_audio_data(audio_data)
 
 # Function to recognize speech from audio binary data
 def recognize_speech_from_audio_data(audio_data):
