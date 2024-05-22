@@ -1,34 +1,27 @@
 import asyncio
 import websockets
 import json
-from langchain_community.llms import Ollama
-from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
-from prompt_utils import get_llama3_prompt_from_messages
+from dotenv import load_dotenv
 from tts_utils import tts_async
+from llm_utils import create_llm_instance
 
-llm = Ollama(
-    # model="llama3",
-    model="phi3",
-    callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-    verbose=True,
-    keep_alive=-1,
-    stop=["\n", "<|im_end|>"],
-    # stop=["<|eot_id|>"],
-)
+load_dotenv()
+import sys
 
-llm.invoke("")
+if len(sys.argv) < 2:
+    raise ValueError("Model name must be provided as a command-line argument")
+
+model_name = sys.argv[1]
+llm_instance = create_llm_instance(model_name, debug=False)
 
 # Global initialization of COM and speech object
 import win32com.client
 global_speaker = win32com.client.Dispatch("SAPI.SpVoice")
 global_speaker.Voice = global_speaker.GetVoices().Item(0)
 
-
-# Simulated LLM function
 async def a_call_llm(websocket, data):
-    # print("Calling LLM with data:", data)
-    
-    prompt = get_llama3_prompt_from_messages(data, True)
+
+    prompt = llm_instance.get_prompt_from_messages(data)
     command = ""
     all_chunks = ""
     buffer = ""
@@ -38,13 +31,14 @@ async def a_call_llm(websocket, data):
     at_least_one_chunk_has_been_sent = False
 
     await websocket.send("<|begin_of_text|>")
-    for chunk in llm._stream(prompt):
+    for chunk in llm_instance.llm._stream(prompt):
         chunk_text = chunk.text
         # print(chunk_text)
+
         # Clean and manage the buffer
         chunk_text = chunk_text.replace('","', '').replace(',"', '').replace('",', '').replace('"', '').replace('{', '').replace('}', '').replace(':', '').replace('=', '').replace('```', '')
         all_chunks += chunk_text
-        
+
         buffer += chunk_text
         if (chunk_text.strip() == "_"
             and buffer != "_text" and buffer != "_command"
@@ -76,12 +70,13 @@ async def a_call_llm(websocket, data):
         elif capturing_command:
             command += chunk_text
 
-    import threading
-    threading.Thread(target=tts_async, args=(global_speaker, text,)).start()
-
     if not at_least_one_chunk_has_been_sent:
         await websocket.send(all_chunks)
+
     print(all_chunks)
+
+    import threading
+    threading.Thread(target=tts_async, args=(global_speaker, text,)).start()
 
     print(f'FINAL command=|{command}|')
     if command:

@@ -11,7 +11,7 @@ from tts_utils import tts_async
 
 load_dotenv()
 llm = ChatOpenAI(
-    model="gpt-4-turbo",
+    model="gpt-4o",
     api_key=os.getenv("API_KEY"),
     temperature=0.0,
     model_kwargs={"top_p":0.1},
@@ -26,20 +26,6 @@ global_speaker = win32com.client.Dispatch("SAPI.SpVoice")
 global_speaker.Voice = global_speaker.GetVoices().Item(0)
 
 async def a_call_llm(websocket, data):
-    # print("Calling LLM with base64 data URL:", data['messages'][1]['content'][1]['image']['url'])
-    
-    # prompt = [
-    #     HumanMessage(content=[
-    #         {"type": "text", "text": "Let's play a game. Think of a country and give me a clue. The clue must be specific enough that there is only one correct country. I will try pointing at the country on a map."},
-    #     ]),
-    #     SystemMessage(content=[{"type": "text", "text": "Alright, here's your clue: This country is renowned for being the birthplace of both the ancient Olympic Games and democracy. Where would you point on the map?"}]),
-    #     # HumanMessage(content=[
-    #     #     {"type": "text", "text": "Is it Greece?"},
-    #     # ]),
-    #     HumanMessage(content=[
-    #         {"type": "image_url", "image_url": { "url" : data['messages'][1]['content'][1]['image']['url']} },
-    #     ])
-    # ]
 
     prompt = get_gpt4_prompt_from_messages(data)
     command = ""
@@ -49,8 +35,6 @@ async def a_call_llm(websocket, data):
     capturing_response = False
     capturing_command = False
     at_least_one_chunk_has_been_sent = False
-
-    # return
 
     await websocket.send("<|begin_of_text|>")
     for chunk in llm._stream(prompt):
