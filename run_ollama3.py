@@ -3,20 +3,10 @@ import websockets
 import json
 from langchain_community.llms import Ollama
 from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
-from prompt_utils import get_llama3_prompt_from_messages
+from llm_utils import create_llm_instance
 from tts_utils import tts_async
 
-llm = Ollama(
-    # model="llama3",
-    model="phi3",
-    callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),
-    verbose=True,
-    keep_alive=-1,
-    stop=["\n", "<|im_end|>"],
-    # stop=["<|eot_id|>"],
-)
-
-llm.invoke("")
+llm_instance = create_llm_instance("llama3")
 
 # Global initialization of COM and speech object
 import win32com.client
@@ -28,7 +18,7 @@ global_speaker.Voice = global_speaker.GetVoices().Item(0)
 async def a_call_llm(websocket, data):
     # print("Calling LLM with data:", data)
     
-    prompt = get_llama3_prompt_from_messages(data, True)
+    prompt = llm_instance.get_prompt_from_messages(data)
     command = ""
     all_chunks = ""
     buffer = ""
@@ -38,7 +28,7 @@ async def a_call_llm(websocket, data):
     at_least_one_chunk_has_been_sent = False
 
     await websocket.send("<|begin_of_text|>")
-    for chunk in llm._stream(prompt):
+    for chunk in llm_instance.llm._stream(prompt):
         chunk_text = chunk.text
         # print(chunk_text)
         # Clean and manage the buffer

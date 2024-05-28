@@ -5,3 +5,4 @@ pretrained_models/
 pretrained_model/
 my/
 .env
+**/__pycache__/
