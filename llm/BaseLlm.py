@@ -6,7 +6,7 @@ class BaseLlm(ABC):
     def __init__(self, model_name, debug=False):
         self.model_name = model_name
         self.debug = debug
-        self.llm = self.create_llm()
+        self.llm = self.init_llm()
 
     def get_prompt_from_messages(self, data):
         prompt = self.initialize_prompt()
@@ -61,6 +61,6 @@ class BaseLlm(ABC):
         pass
 
     @abstractmethod
-    def create_llm(self):
+    def init_llm(self):
         pass
 

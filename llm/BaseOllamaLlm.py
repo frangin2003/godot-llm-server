@@ -6,7 +6,7 @@ class BaseOllamaLlm(BaseLlm):
     def __init__(self, model_name, debug=False):
         super().__init__(model_name, debug)
 
-    def create_llm(self):
+    def init_llm(self):
         llm = Ollama(
             model=self.model_name,
             callback_manager=CallbackManager([StreamingStdOutCallbackHandler()]),

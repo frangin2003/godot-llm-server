@@ -25,9 +25,9 @@ class OpenAILlm(BaseLlm):
         else:
             return [AIMessage(content=[{"type": "text", "text": prompt}])]
         
-    def create_llm(self):
+    def init_llm(self):
         return ChatOpenAI(
-            model=model_name,
+            model=self.model_name,
             api_key=os.getenv("API_KEY"),
             temperature=0.0,
             model_kwargs={"top_p":0.1},
