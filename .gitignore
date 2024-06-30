@@ -5,4 +5,6 @@ pretrained_models/
 pretrained_model/
 my/
 .env
-__pycache__/llm_utils.cpython-312.pyc
+__pycache__/
+build/
+dist/
