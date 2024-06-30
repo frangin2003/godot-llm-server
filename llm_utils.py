@@ -10,7 +10,7 @@ def create_llm_instance(model_name, debug=False):
         return Llama3Llm(model_name, debug)
     elif model_name in ["phi3"]:
         return Phi3ChatMLLlm(model_name, debug)
-    elif model_name in ["mistral"]:
+    elif model_name in ["mistral", "taozhiyuai/hermes-2-pro-llama-3:8b-q5_k_m"]:
         return MistralChatMLLlm(model_name, debug)
     else:
         raise ValueError(f"Unknown model name: {model_name}")

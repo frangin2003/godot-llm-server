@@ -6,7 +6,6 @@ from langchain_core.callbacks import StreamingStdOutCallbackHandler
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
-from prompt_utils import get_gpt4_prompt_from_messages
 from tts_utils import tts_async
 
 load_dotenv()
