@@ -5,6 +5,7 @@ pretrained_models/
 pretrained_model/
 my/
 .env
-/__pycache__/*
+__pycache__/
+**/__pycache__/
 build/
 dist/
