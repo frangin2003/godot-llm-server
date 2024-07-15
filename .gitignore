@@ -9,3 +9,13 @@ __pycache__/
 **/__pycache__/
 build/
 dist/
+__pycache__/image_utils.cpython-312.pyc
+__pycache__/llm_utils.cpython-312.pyc
+__pycache__/stt_utils.cpython-312.pyc
+__pycache__/tts_utils.cpython-312.pyc
+llm/__pycache__/BaseLlm.cpython-312.pyc
+llm/__pycache__/BaseOllamaLlm.cpython-312.pyc
+llm/__pycache__/Llama3Llm.cpython-312.pyc
+llm/__pycache__/MistralChatMLLlm.cpython-312.pyc
+llm/__pycache__/OpenAILlm.cpython-312.pyc
+llm/__pycache__/Phi3ChatMLLlm.cpython-312.pyc

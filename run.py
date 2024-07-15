@@ -17,10 +17,10 @@ port = sys.argv[1]
 model_name = sys.argv[2]
 llm_instance = create_llm_instance(model_name, debug=False)
 
-# Global initialization of COM and speech object
-import win32com.client
-global_speaker = win32com.client.Dispatch("SAPI.SpVoice")
-global_speaker.Voice = global_speaker.GetVoices().Item(0)
+# # Global initialization of COM and speech object
+# import win32com.client
+# global_speaker = win32com.client.Dispatch("SAPI.SpVoice")
+# global_speaker.Voice = global_speaker.GetVoices().Item(0)
 
 async def a_call_llm(websocket, data):
     print("a_call_llm: Start processing data")
@@ -30,7 +30,7 @@ async def a_call_llm(websocket, data):
     buffer = ""
  
     capturing_speaker = False
-    speaker = ""
+    speaker_id = ""
     capturing_text = False
     at_least_one_chunk_has_been_sent = False
     text = ""
@@ -72,7 +72,7 @@ async def a_call_llm(websocket, data):
 
         # Accumulate content into the response or command based on the current state
         if capturing_speaker:
-            speaker += chunk_text
+            speaker_id += chunk_text
         elif capturing_text:
             at_least_one_chunk_has_been_sent = True
             text += chunk_text
@@ -88,11 +88,11 @@ async def a_call_llm(websocket, data):
     print(f"All chunks: {all_chunks}")
 
     import threading
-    threading.Thread(target=tts_async, args=(global_speaker, text,)).start()
+    threading.Thread(target=tts_async, args=(websocket, text, ''.join(filter(str.isdigit, speaker_id)))).start()
 
     print(f'FINAL command=|{command}|')
     if command:
-        await websocket.send(f"<|command|>{command}")
+        await websocket.send(f"<|command|>{''.join(filter(str.isalnum, command))}")
         await asyncio.sleep(0)
 
     await websocket.send("<|end_of_text|>")
