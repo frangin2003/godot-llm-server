@@ -90,8 +90,12 @@ async def a_call_llm(websocket, data):
     import threading
     threading.Thread(target=tts_async, args=(websocket, text, ''.join(filter(str.isdigit, speaker_id)))).start()
 
-    print(f'FINAL command=|{command}|')
     if command:
+        if command and command[0].isdigit():
+            command = ''.join(filter(str.isdigit, command))
+        else:
+            command = command.strip()
+        print(f'FINAL command=|{command}|')
         await websocket.send(f"<|command|>{''.join(filter(str.isalnum, command))}")
         await asyncio.sleep(0)
 
@@ -104,6 +108,10 @@ async def websocket_handler(websocket, path):
     async for message in websocket:
         data = json.loads(message)
         print(f"Received message: {json.dumps(data, indent=4)}")
+        if 'messages' in data and data['messages'] and 'content' in data['messages'][0]:
+            content = data['messages'][0]['content']
+            if isinstance(content, list) and content and 'text' in content[0]:
+                print(f"Content text:\n{content[0]['text']}")
         await a_call_llm(websocket, data)
     print("websocket_handler: Connection closed")
 
