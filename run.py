@@ -15,7 +15,7 @@ if len(sys.argv) < 3:
 
 port = sys.argv[1]
 model_name = sys.argv[2]
-llm_instance = create_llm_instance(model_name, debug=False)
+llm_instance = create_llm_instance(model_name, debug=True)
 
 # # Global initialization of COM and speech object
 # import win32com.client

@@ -1,3 +1,5 @@
+import os
+import tempfile
 import asyncio
 import pythoncom
 from pydub import AudioSegment
@@ -78,7 +80,8 @@ def speak_text(websocket, text, id="001"):
     if voice_id is not None:
         speaker.Voice = speaker.GetVoices().Item(voice_id)
     stream = win32com.client.Dispatch("SAPI.SpFileStream")
-    temp_filename = f"temp_{voice_type}.wav"
+    temp_dir = tempfile.gettempdir()
+    temp_filename = os.path.join(temp_dir, f"temp_{voice_type}.wav")
     stream.Open(temp_filename, 3)  # 3 = SSFMCreateForWrite
     speaker.AudioOutputStream = stream
     speaker.Speak(text)
