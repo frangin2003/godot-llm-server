@@ -7,7 +7,7 @@ def create_llm_instance(model_name, debug=False):
     llm_intance = None
     if model_name in ["gpt4", "gpt4-turbo", "gpt4o"]:
         llm_intance = OpenAILlm(model_name, debug)
-    elif model_name in ["llama3"]:
+    elif model_name.startswith("llama3"):
         llm_intance = Llama3Llm(model_name, debug)
     elif model_name in ["phi3"]:
         llm_intance = Phi3ChatMLLlm(model_name, debug)
