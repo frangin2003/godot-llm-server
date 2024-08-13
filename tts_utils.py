@@ -69,7 +69,7 @@ def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
     return slowed_down_deeper_voice
 
 
-def speak_text(websocket, text, id="001"):
+def speak_text(text, id="001"):
     voice_type = voice_types[id]["type"]
     print(f"The selected voice type is: {voice_type}")
     voice_id = voice_types[id]["voice_id"]
@@ -96,11 +96,11 @@ def speak_text(websocket, text, id="001"):
     runtime = len(result_voice) / 1000.0  # Convert milliseconds to seconds
     print(f"Runtime of the sound: {runtime:.2f} seconds")
     # Send the runtime using websocket
-    asyncio.run(websocket.send(f"<|speak|>{id}|{runtime:.2f}"))
+    # asyncio.run(websocket.send(f"<|speak|>{id}|{runtime:.2f}"))
     # Optionally, play the modified audio
     play(result_voice)
 
-def tts_async(websocket, text, id):
+def tts_async(text, id):
     pythoncom.CoInitialize()
     try:
         # Debugging output
@@ -108,7 +108,7 @@ def tts_async(websocket, text, id):
         # speaker.Speak("", 2)  # Attempt to stop any ongoing speech
         print("Attempting to speak new response...")
         # speaker.Speak(text)
-        speak_text(websocket, text, id)
+        speak_text(text, id)
         print("Speaking complete.")
     except Exception as e:
         print(f"An error occurred in speak_async: {e}")
