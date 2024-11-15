@@ -69,12 +69,12 @@ def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
     return slowed_down_deeper_voice
 
 
-def speak_text(text, id="001"):
-    voice_type = voice_types[id]["type"]
+def speak_text(text, speaker_id="001", callback=None):
+    voice_type = voice_types[speaker_id]["type"]
     print(f"The selected voice type is: {voice_type}")
-    voice_id = voice_types[id]["voice_id"]
-    pitch = voice_types[id]["pitch"]
-    octaves_multiplier = voice_types[id]["octaves_multiplier"]
+    voice_id = voice_types[speaker_id]["voice_id"]
+    pitch = voice_types[speaker_id]["pitch"]
+    octaves_multiplier = voice_types[speaker_id]["octaves_multiplier"]
     pythoncom.CoInitialize()  # Initialize the COM environment for the current thread
     speaker = win32com.client.Dispatch("SAPI.SpVoice")
     if voice_id is not None:
@@ -96,11 +96,13 @@ def speak_text(text, id="001"):
     runtime = len(result_voice) / 1000.0  # Convert milliseconds to seconds
     print(f"Runtime of the sound: {runtime:.2f} seconds")
     # Send the runtime using websocket
+    if callback:
+        callback(runtime, speaker_id)
     # asyncio.run(websocket.send(f"<|speak|>{id}|{runtime:.2f}"))
     # Optionally, play the modified audio
     play(result_voice)
 
-def tts_async(text, id):
+def tts_async(text, speaker_id, callback=None):
     pythoncom.CoInitialize()
     try:
         # Debugging output
@@ -108,7 +110,7 @@ def tts_async(text, id):
         # speaker.Speak("", 2)  # Attempt to stop any ongoing speech
         print("Attempting to speak new response...")
         # speaker.Speak(text)
-        speak_text(text, id)
+        speak_text(text, speaker_id, callback)
         print("Speaking complete.")
     except Exception as e:
         print(f"An error occurred in speak_async: {e}")

@@ -1,7 +1,13 @@
-# llm-server
+# godot-llm-server
+## Starting the server
+```bash
+conda activate llm-server
+python run.py 7500 llama3.1
+```
 
-# llm-server-cuda
-## Prerequisites
+
+## Installation Instructions for llm-server-cuda
+### Prerequisites
 - Anaconda https://www.anaconda.com/download
 - CUDA (you need a NVidia Developer account)
 
@@ -13,23 +19,23 @@ Follow on-screen prompts
 Additional installation options are detailed here:
 https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
 
-##  Create a python env with Anaconda
+### Create a python env with Anaconda
 ```bash
 conda create --name llm-server-cuda
 conda activate llm-server-cuda
 ```
 
-## Install llama-cpp-python with CUDA enabled
+### Install llama-cpp-python with CUDA enabled
 ```bash
 set CMAKE_ARGS=-DLLAMA_CUBLAS=on
 set FORCE_CMAKE=1
 pip install llama-cpp-python --force-reinstall --upgrade --no-cache-dir
 ```
 
-# TTS
+## TTS
 https://huggingface.co/models?pipeline_tag=text-to-speech&sort=downloads
-## Suno AI
-### Install PyTorch with CUDA
+### Suno AI
+#### Install PyTorch with CUDA
 https://pytorch.org/get-started/locally/
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121

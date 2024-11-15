@@ -92,8 +92,25 @@ async def a_call_llm(websocket, data):
 
     print(f"All chunks: {all_chunks}")
 
-    # import threading
-    # threading.Thread(target=tts_async, args=(text, ''.join(filter(str.isdigit, speaker_id)))).start()
+    # Store the event loop from the main thread
+    loop = asyncio.get_running_loop()
+
+    # Create a callback function to send the runtime via websocket
+    async def send_runtime_callback(runtime, speaker_id):
+        await websocket.send(f"<|speak|>{speaker_id}|{runtime:.2f}")
+
+    # Create a wrapper function that uses the stored loop
+    def tts_callback(runtime, speaker_id):
+        asyncio.run_coroutine_threadsafe(
+            send_runtime_callback(runtime, speaker_id), 
+            loop  # Use the stored loop instead of trying to get a new one
+        )
+
+    # Start TTS thread with the callback
+    threading.Thread(
+        target=tts_async, 
+        args=(text, ''.join(filter(str.isdigit, speaker_id)), tts_callback)
+    ).start()
 
     if command:
         if command and command[0].isdigit():
