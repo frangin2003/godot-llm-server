@@ -7,6 +7,7 @@ import signal
 from dotenv import load_dotenv
 from tts_utils import tts_async
 from llm_utils import create_llm_instance
+from db_utils import init_db, save_prompt
 
 load_dotenv()
 import sys
@@ -18,6 +19,11 @@ if len(sys.argv) < 3:
 
 port = sys.argv[1]
 model_name = sys.argv[2]
+capture_enabled = len(sys.argv) > 3 and sys.argv[3] == "capture"
+
+if capture_enabled:
+    init_db()
+
 llm_instance = create_llm_instance(model_name, debug=True)
 queue_sentences = queue.Queue()
 queue_speak = queue.Queue()
@@ -27,6 +33,7 @@ async def a_call_llm(websocket, data):
 
     prompt = llm_instance.get_prompt_from_messages(data)
     all_chunks = ""
+    all_chunks_text = ""
     buffer = ""
  
     capturing_speaker = False
@@ -42,6 +49,7 @@ async def a_call_llm(websocket, data):
     for chunk in llm_instance.llm._stream(prompt):
         chunk_text = chunk.text
         print(f"Received chunk: {chunk_text}")
+        all_chunks_text += chunk_text
         # Clean and manage the buffer
         chunk_text = chunk_text.replace('","', '').replace(',"', '').replace('",', '').replace('"', '').replace('{', '').replace('}', '').replace(':', '').replace('=', '').replace('```', '')
         all_chunks += chunk_text
@@ -91,6 +99,9 @@ async def a_call_llm(websocket, data):
         await asyncio.sleep(0)
 
     print(f"All chunks: {all_chunks}")
+
+    if capture_enabled:
+        save_prompt(data, all_chunks_text)
 
     # Store the event loop from the main thread
     loop = asyncio.get_running_loop()
