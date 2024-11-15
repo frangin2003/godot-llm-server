@@ -70,7 +70,7 @@ def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
 
 
 def speak_text(text, speaker_id="001", callback=None):
-    voice_type = voice_types[speaker_id]["type"]
+    voice_type = voice_types[speaker_id]["type"] if speaker_id in voice_types else voice_types["001"]["type"]
     print(f"The selected voice type is: {voice_type}")
     voice_id = voice_types[speaker_id]["voice_id"]
     pitch = voice_types[speaker_id]["pitch"]
@@ -98,21 +98,25 @@ def speak_text(text, speaker_id="001", callback=None):
     # Send the runtime using websocket
     if callback:
         callback(runtime, speaker_id)
-    # asyncio.run(websocket.send(f"<|speak|>{id}|{runtime:.2f}"))
-    # Optionally, play the modified audio
     play(result_voice)
 
 def tts_async(text, speaker_id, callback=None):
-    pythoncom.CoInitialize()
     try:
-        # Debugging output
-        # print("Attempting to stop any ongoing speech...")
-        # speaker.Speak("", 2)  # Attempt to stop any ongoing speech
-        print("Attempting to speak new response...")
-        # speaker.Speak(text)
-        speak_text(text, speaker_id, callback)
-        print("Speaking complete.")
+        pythoncom.CoInitialize()
+        try:
+            print("Attempting to speak new response...")
+            speak_text(text, speaker_id, callback)
+            print("Speaking complete.")
+        except Exception as e:
+            print(f"Error in speak_text: {e}")
+            import traceback
+            traceback.print_exc()
     except Exception as e:
-        print(f"An error occurred in speak_async: {e}")
+        print(f"Error in tts_async: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        pythoncom.CoUninitialize()  # Clean up COM initialization
+        try:
+            pythoncom.CoUninitialize()
+        except:
+            print("Error uninitializing COM")

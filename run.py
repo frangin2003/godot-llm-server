@@ -159,16 +159,25 @@ def queue_sentences_listener():
 # queue_sentences_listener_thread.start()
 
 async def websocket_handler(websocket, path):
-    print("websocket_handler: New connection established")
-    async for message in websocket:
-        data = json.loads(message)
-        print(f"Received message: {json.dumps(data, indent=4)}")
-        if 'messages' in data and data['messages'] and 'content' in data['messages'][0]:
-            content = data['messages'][0]['content']
-            if isinstance(content, list) and content and 'text' in content[0]:
-                print(f"Content text:\n{content[0]['text']}")
-        await a_call_llm(websocket, data)
-    print("websocket_handler: Connection closed")
+    try:
+        print("websocket_handler: New connection established")
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+                print(f"Received message: {json.dumps(data, indent=4)}")
+                await a_call_llm(websocket, data)
+            except Exception as e:
+                print(f"Error processing message: {e}")
+                import traceback
+                traceback.print_exc()
+                # Optionally send error to client
+                await websocket.send(f"Error: {str(e)}")
+    except Exception as e:
+        print(f"Websocket handler error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        print("websocket_handler: Connection closed")
 
 def signal_handler(signum, frame):
     print(f"Received signal {signum}. Shutting down gracefully...")
@@ -180,18 +189,27 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 async def main():
-    start_server = websockets.serve(websocket_handler, "localhost", port)
-    print("llm-server ready!")
-    print(f"port={port}")
-    print(f"model_name={model_name}")
-
-    await start_server
-    print("Server started and running")
-    
     try:
-        await asyncio.Future()  # Run forever
-    except asyncio.CancelledError:
-        pass
+        start_server = websockets.serve(websocket_handler, "localhost", port)
+        print("llm-server ready!")
+        print(f"port={port}")
+        print(f"model_name={model_name}")
+
+        await start_server
+        print("Server started and running")
+        
+        try:
+            await asyncio.Future()  # Run forever
+        except asyncio.CancelledError:
+            print("Server received cancellation")
+        except Exception as e:
+            print(f"Unexpected error in main loop: {e}")
+            import traceback
+            traceback.print_exc()
+    except Exception as e:
+        print(f"Fatal error in main: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         print("Server stopped")
 
