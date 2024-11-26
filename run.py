@@ -28,10 +28,18 @@ llm_instance = create_llm_instance(model_name, debug=True)
 queue_sentences = queue.Queue()
 queue_speak = queue.Queue()
 
+game_socket = None
+monitor_socket = None
+
 async def a_call_llm(websocket, data):
     print("a_call_llm: Start processing data")
+    if monitor_socket:
+        await monitor_socket.send("")
+        await monitor_socket.send(data)
 
     prompt = llm_instance.get_prompt_from_messages(data)
+    if monitor_socket:
+        await monitor_socket.send(prompt)
     all_chunks = ""
     all_chunks_text = ""
     buffer = ""
@@ -44,7 +52,7 @@ async def a_call_llm(websocket, data):
     capturing_command = False
     command = ""
  
-    await websocket.send("")
+    await game_socket.send("")
     await asyncio.sleep(0)
     for chunk in llm_instance.llm._stream(prompt):
         chunk_text = chunk.text
@@ -89,13 +97,13 @@ async def a_call_llm(websocket, data):
             #     if len(sentences) > 1:
             #         last_sentence = sentences[-2] + "."  # Include the period
             #         queue_sentences.append(last_sentence)
-            await websocket.send(chunk_text)
+            await game_socket.send(chunk_text)
             await asyncio.sleep(0)
         elif capturing_command:
             command += chunk_text
 
     if not at_least_one_chunk_has_been_sent:
-        await websocket.send(all_chunks)
+        await game_socket.send(all_chunks)
         await asyncio.sleep(0)
 
     print(f"All chunks: {all_chunks}")
@@ -108,7 +116,7 @@ async def a_call_llm(websocket, data):
 
     # Create a callback function to send the runtime via websocket
     async def send_runtime_callback(runtime, speaker_id):
-        await websocket.send(f"<|speak|>{speaker_id}|{runtime:.2f}")
+        await game_socket.send(f"<|speak|>{speaker_id}|{runtime:.2f}")
 
     # Create a wrapper function that uses the stored loop
     def tts_callback(runtime, speaker_id):
@@ -129,10 +137,10 @@ async def a_call_llm(websocket, data):
         else:
             command = command.strip()
         print(f'FINAL command=|{command}|')
-        await websocket.send(f"<|command|>{''.join(filter(str.isalnum, command))}")
+        await game_socket.send(f"<|command|>{''.join(filter(str.isalnum, command))}")
         await asyncio.sleep(0)
 
-    await websocket.send("")
+    await game_socket.send("")
     await asyncio.sleep(0)
     print("a_call_llm: Finished processing data")
 
@@ -161,22 +169,30 @@ def queue_sentences_listener():
 async def websocket_handler(websocket, path):
     try:
         print("websocket_handler: New connection established")
+        # Get client type
+        init_message = await websocket.recv()
+        client_type = json.loads(init_message).get('client')
+        
+        global game_socket, monitor_socket
+        if client_type == 'game':
+            game_socket = websocket
+        elif client_type == 'monitor':
+            monitor_socket = websocket
+            
         async for message in websocket:
             try:
                 data = json.loads(message)
-                print(f"Received message: {json.dumps(data, indent=4)}")
                 await a_call_llm(websocket, data)
             except Exception as e:
                 print(f"Error processing message: {e}")
                 import traceback
                 traceback.print_exc()
-                # Optionally send error to client
-                await websocket.send(f"Error: {str(e)}")
-    except Exception as e:
-        print(f"Websocket handler error: {e}")
-        import traceback
-        traceback.print_exc()
     finally:
+        global game_socket, monitor_socket
+        if websocket == game_socket:
+            game_socket = None
+        elif websocket == monitor_socket:
+            monitor_socket = None
         print("websocket_handler: Connection closed")
 
 def signal_handler(signum, frame):
