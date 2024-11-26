@@ -111,12 +111,12 @@ def tts_async(text, speaker_id, callback=None):
             print(f"Error in speak_text: {e}")
             import traceback
             traceback.print_exc()
+        finally:
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                print("Error uninitializing COM")
     except Exception as e:
         print(f"Error in tts_async: {e}")
         import traceback
         traceback.print_exc()
-    finally:
-        try:
-            pythoncom.CoUninitialize()
-        except:
-            print("Error uninitializing COM")
