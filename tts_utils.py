@@ -1,6 +1,5 @@
 import os
 import tempfile
-import asyncio
 import pythoncom
 from pydub import AudioSegment
 from pydub.playback import play
@@ -70,15 +69,18 @@ def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
 
 
 def speak_text(text, speaker_id="001", callback=None):
+    pythoncom.CoInitialize()
+    speaker = None
+    stream = None
     try:
+        speaker = win32com.client.Dispatch("SAPI.SpVoice")
+        stream = win32com.client.Dispatch("SAPI.SpFileStream")
+
         voice_type = voice_types[speaker_id]["type"] if speaker_id in voice_types else voice_types["001"]["type"]
         print(f"The selected voice type is: {voice_type}")
         voice_id = voice_types[speaker_id]["voice_id"]
         pitch = voice_types[speaker_id]["pitch"]
         octaves_multiplier = voice_types[speaker_id]["octaves_multiplier"]
-        
-        pythoncom.CoInitialize()
-        speaker = win32com.client.Dispatch("SAPI.SpVoice")
         
         # Add voice validation
         voices = speaker.GetVoices()
@@ -87,31 +89,34 @@ def speak_text(text, speaker_id="001", callback=None):
         else:
             print(f"Warning: Voice ID {voice_id} not available, using default voice")
             
-        stream = win32com.client.Dispatch("SAPI.SpFileStream")
         temp_dir = tempfile.gettempdir()
         temp_filename = os.path.join(temp_dir, f"temp_{voice_type}.wav")
         stream.Open(temp_filename, 3)
         speaker.AudioOutputStream = stream
         speaker.Speak(text)
-        stream.Close()
-        
+
+        # Adjust pitch of the saved audio file while maintaining its length
+        result_voice = adjust_pitch_and_octaves(temp_filename, pitch, octaves_multiplier)
+        # Save the modified audio
+        # result_voice.export(filename, format="wav")
+        # Get the runtime of the sound
+        runtime = len(result_voice) / 1000.0  # Convert milliseconds to seconds
+        print(f"Runtime of the sound: {runtime:.2f} seconds")
+        # Send the runtime using websocket
+        if callback:
+            callback(runtime, speaker_id)
+        play(result_voice)
+            
     except Exception as e:
         print(f"Error in speak_text: {e}")
         # Optionally fall back to default voice
     finally:
+        if stream:
+            stream.Close()
+        # Force COM cleanup
+        speaker = None
+        stream = None
         pythoncom.CoUninitialize()
-    
-    # Adjust pitch of the saved audio file while maintaining its length
-    result_voice = adjust_pitch_and_octaves(temp_filename, pitch, octaves_multiplier)
-    # Save the modified audio
-    # result_voice.export(filename, format="wav")
-    # Get the runtime of the sound
-    runtime = len(result_voice) / 1000.0  # Convert milliseconds to seconds
-    print(f"Runtime of the sound: {runtime:.2f} seconds")
-    # Send the runtime using websocket
-    if callback:
-        callback(runtime, speaker_id)
-    play(result_voice)
 
 def tts_async(text, speaker_id, callback=None):
     try:

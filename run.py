@@ -1,3 +1,4 @@
+import pythoncom
 import asyncio
 import websockets
 import json
@@ -37,6 +38,7 @@ tts_thread = None
 should_stop = False
 
 def tts_worker():
+    pythoncom.CoInitialize()
     """Single worker thread to handle all TTS requests"""
     while not should_stop:
         try:
@@ -57,6 +59,9 @@ def tts_worker():
             print(f"Error in TTS worker: {e}")
             import traceback
             traceback.print_exc()
+
+        finally:
+            pythoncom.CoUninitialize()
 
 async def a_call_llm(websocket, data):
     global tts_thread
@@ -254,6 +259,17 @@ signal.signal(signal.SIGTERM, signal_handler)
 async def main():
     global tts_thread, should_stop
     
+    # Initialize shutdown event
+    shutdown_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    
+    def handle_shutdown(signum, frame):
+        loop.call_soon_threadsafe(shutdown_event.set)
+
+    # Set up signal handlers
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, handle_shutdown)
+
     try:
         print("Starting llm-server...")
         # Start the TTS worker thread
@@ -285,9 +301,22 @@ async def main():
         # Clean shutdown of TTS thread
         should_stop = True
         tts_queue.put(None)  # Signal the worker to stop
-        if tts_thread:
-            tts_thread.join(timeout=5)  # Wait up to 5 seconds for thread to finish
-        print("Server stopped")
+        if tts_thread and tts_thread.is_alive():
+            tts_thread.join(timeout=3)
+        # Close all websockets
+        if game_socket:
+            await game_socket.close()
+        if monitor_socket:
+            await monitor_socket.close()
+            
+        print("Shutdown complete")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received. Shutting down gracefully...")
+    except Exception as e:
+        print(f"Fatal error in main: {e}")
+        import traceback
+        traceback.print_exc()
