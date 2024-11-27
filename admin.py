@@ -94,15 +94,12 @@ def monitor_server():
                     log(f"Server process ended with return code: {process.returncode}")
                     break
 
-            log(f"Waiting {restart_delay} seconds before restarting...")
-            time.sleep(restart_delay)
-            restart_delay = min(restart_delay * 2, max_restart_delay)
+            log("Restarting server immediately...")
 
         except Exception as e:
             log(f"Error in monitor_server: {e}")
             import traceback
             traceback.print_exc()
-            time.sleep(restart_delay)
             continue
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+@font-face {
+  font-family: 'PressStart2P';
+  src: url('/evaluation/PressStart2P.ttf') format('truetype');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'PressStart2P', monospace;
+  background-color: black;
+  color: white;
+}
+
+/* Custom scrollbar styles for the panels */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #FF69B4; /* Default color for the center panel */
+  border-radius: 10px;
+  border: 2px solid transparent;
+}
+
+.w-1\/5 .::-webkit-scrollbar-thumb {
+  background-color: white; /* Color for the left panel */
+}
+
+.w-1\/2:nth-child(3) .::-webkit-scrollbar-thumb {
+  background-color: #00FFFF; /* Color for the right panel */
+} 

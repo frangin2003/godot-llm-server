@@ -65,7 +65,6 @@ async def a_call_llm(websocket, data):
         print("a_call_llm: Start processing data")
         if monitor_socket:
             await monitor_socket.send("")
-            await monitor_socket.send(data)
 
         prompt = llm_instance.get_prompt_from_messages(data)
         if monitor_socket:
@@ -88,6 +87,8 @@ async def a_call_llm(websocket, data):
         for chunk in llm_instance.llm._stream(prompt):
             chunk_text = chunk.text
             print(f"Received chunk: {chunk_text}")
+            if monitor_socket:
+                await monitor_socket.send(chunk_text)
             all_chunks_text += chunk_text
             # Clean and manage the buffer
             chunk_text = chunk_text.replace('","', '').replace(',"', '').replace('",', '').replace('"', '').replace('{', '').replace('}', '').replace(':', '').replace('=', '').replace('```', '')
@@ -208,7 +209,6 @@ async def websocket_handler(websocket, path):
     global game_socket, monitor_socket
     try:
         print("websocket_handler: New connection established")
-        # Get client type
         init_message = await websocket.recv()
         init_data = json.loads(init_message)
         client_type = init_data.get('client')
@@ -217,22 +217,19 @@ async def websocket_handler(websocket, path):
             game_socket = websocket
         elif client_type == 'monitor':
             monitor_socket = websocket
-            
-        # Process the initial message if it contains more than just client type
-        if len(init_data) > 1:  # If there's more data besides 'client'
+        
+        if len(init_data) > 1:
             try:
-                # Wait for game_socket to be properly set before processing
-                await asyncio.sleep(0)  # Yield control to ensure socket setup is complete
-                # Make sure init_data is parsed as JSON if it isn't already
+                await asyncio.sleep(0)
                 data = init_data if isinstance(init_data, dict) else json.loads(init_data)
                 await a_call_llm(websocket, data)
             except Exception as e:
                 print(f"Error processing initial message: {e}")
                 traceback.print_exc()
-            
+        
+        # Process further messages for both game_socket and monitor_socket
         async for message in websocket:
             try:
-                # Ensure message is parsed as JSON
                 data = message if isinstance(message, dict) else json.loads(message)
                 await a_call_llm(websocket, data)
             except Exception as e:

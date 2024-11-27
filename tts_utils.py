@@ -70,23 +70,36 @@ def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
 
 
 def speak_text(text, speaker_id="001", callback=None):
-    voice_type = voice_types[speaker_id]["type"] if speaker_id in voice_types else voice_types["001"]["type"]
-    print(f"The selected voice type is: {voice_type}")
-    voice_id = voice_types[speaker_id]["voice_id"]
-    pitch = voice_types[speaker_id]["pitch"]
-    octaves_multiplier = voice_types[speaker_id]["octaves_multiplier"]
-    pythoncom.CoInitialize()  # Initialize the COM environment for the current thread
-    speaker = win32com.client.Dispatch("SAPI.SpVoice")
-    if voice_id is not None:
-        speaker.Voice = speaker.GetVoices().Item(voice_id)
-    stream = win32com.client.Dispatch("SAPI.SpFileStream")
-    temp_dir = tempfile.gettempdir()
-    temp_filename = os.path.join(temp_dir, f"temp_{voice_type}.wav")
-    stream.Open(temp_filename, 3)  # 3 = SSFMCreateForWrite
-    speaker.AudioOutputStream = stream
-    speaker.Speak(text)
-    stream.Close()
-    pythoncom.CoUninitialize()  # Uninitialize the COM environment for the current thread
+    try:
+        voice_type = voice_types[speaker_id]["type"] if speaker_id in voice_types else voice_types["001"]["type"]
+        print(f"The selected voice type is: {voice_type}")
+        voice_id = voice_types[speaker_id]["voice_id"]
+        pitch = voice_types[speaker_id]["pitch"]
+        octaves_multiplier = voice_types[speaker_id]["octaves_multiplier"]
+        
+        pythoncom.CoInitialize()
+        speaker = win32com.client.Dispatch("SAPI.SpVoice")
+        
+        # Add voice validation
+        voices = speaker.GetVoices()
+        if voice_id is not None and voice_id < voices.Count:
+            speaker.Voice = voices.Item(voice_id)
+        else:
+            print(f"Warning: Voice ID {voice_id} not available, using default voice")
+            
+        stream = win32com.client.Dispatch("SAPI.SpFileStream")
+        temp_dir = tempfile.gettempdir()
+        temp_filename = os.path.join(temp_dir, f"temp_{voice_type}.wav")
+        stream.Open(temp_filename, 3)
+        speaker.AudioOutputStream = stream
+        speaker.Speak(text)
+        stream.Close()
+        
+    except Exception as e:
+        print(f"Error in speak_text: {e}")
+        # Optionally fall back to default voice
+    finally:
+        pythoncom.CoUninitialize()
     
     # Adjust pitch of the saved audio file while maintaining its length
     result_voice = adjust_pitch_and_octaves(temp_filename, pitch, octaves_multiplier)
