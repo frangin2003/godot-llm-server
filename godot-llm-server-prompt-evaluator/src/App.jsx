@@ -78,6 +78,53 @@ function App() {
     setOutput(pair.output);
   };
 
+  const handleSendPrompt = async () => {
+    if (!currentPrompt.trim()) return;
+    
+    setOutput(''); // Clear previous output
+    
+    try {
+      const response = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "llama3.1",
+          prompt: currentPrompt,
+          stream: true
+        })
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          
+          try {
+            const parsedChunk = JSON.parse(line);
+            if (parsedChunk.response) {
+              setOutput(prev => prev + parsedChunk.response);
+            }
+          } catch (e) {
+            console.error('Error parsing chunk:', e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error calling Ollama API:', error);
+      setOutput('Error: Failed to get response from Ollama');
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen p-4 text-xs">
       <div className="flex flex-1 gap-4">
@@ -100,11 +147,19 @@ function App() {
         {/* Center Panel - Current Prompt */}
         <div className="w-1/2 flex flex-col">
           <div className="text-[#FF69B4] mb-2">Prompt</div>
-          <textarea
-            value={currentPrompt}
-            onChange={(e) => setCurrentPrompt(e.target.value)}
-            className="flex-1 bg-black border-[#FF69B4] border-5 p-2 resize-none focus:outline-none text-white"
-          />
+          <div className="flex flex-col h-full">
+            <textarea
+              value={currentPrompt}
+              onChange={(e) => setCurrentPrompt(e.target.value)}
+              className="flex-1 bg-black border-[#FF69B4] border-5 p-2 resize-none focus:outline-none text-white mb-2"
+            />
+            <button
+              onClick={handleSendPrompt}
+              className="bg-black text-[#FF69B4] border-[#FF69B4] border-5 p-2 hover:bg-[#FF69B4] hover:text-black transition-colors"
+            >
+              SEND
+            </button>
+          </div>
         </div>
 
         {/* Right Panel - Output */}
