@@ -12,7 +12,3 @@ dist/
 **/*.pyc
 node_modules/
 **/node_modules/
-__pycache__/image_utils.cpython-312.pyc
-__pycache__/llm_utils.cpython-312.pyc
-__pycache__/stt_utils.cpython-312.pyc
-__pycache__/tts_utils.cpython-312.pyc

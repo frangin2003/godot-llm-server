@@ -25,7 +25,11 @@ class BaseLlm(ABC):
                         prompt = self.accumulate_prompt(prompt, self.get_role_prompt_from_image_url(role, item['image_url']['url']))
         prompt = self.accumulate_prompt(prompt, self.finalize_prompt())
         if self.debug:
-            print(prompt)
+            try:
+                print(prompt)
+            except UnicodeEncodeError:
+                # Fall back to ASCII printing, replacing unknown characters
+                print(prompt.encode('ascii', 'replace').decode())
         return prompt
 
     def get_role_prompt_from_speech_url(self, role, speech_url):
