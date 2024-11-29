@@ -145,7 +145,9 @@ async def a_call_llm(websocket, data):
                 await game_socket.send(all_chunks)
                 await asyncio.sleep(0)
 
-        print(f"All chunks: {all_chunks}")
+        print(f"all_chunks = {all_chunks}")
+        print(f"all_chunks_text = {all_chunks_text}")
+        print(f"text = {text}")
 
         if capture_enabled:
             save_prompt(data, all_chunks_text)
