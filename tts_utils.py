@@ -4,7 +4,6 @@ import pythoncom
 from pydub import AudioSegment
 from pydub.playback import play
 import win32com.client
-import time
 
 voice_types = {
     "001": {
@@ -70,16 +69,9 @@ def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
 
 
 def speak_text(text, speaker_id="001", callback=None):
-    if not text or not text.strip():
-        print("Warning: Empty text received, skipping TTS")
-        return
-
     pythoncom.CoInitialize()
     speaker = None
     stream = None
-    temp_filename = None
-    stream_opened = False
-    
     try:
         speaker = win32com.client.Dispatch("SAPI.SpVoice")
         stream = win32com.client.Dispatch("SAPI.SpFileStream")
@@ -94,70 +86,39 @@ def speak_text(text, speaker_id="001", callback=None):
         voices = speaker.GetVoices()
         if voice_id is not None and voice_id < voices.Count:
             speaker.Voice = voices.Item(voice_id)
-        
+        else:
+            print(f"Warning: Voice ID {voice_id} not available, using default voice")
+            
         temp_dir = tempfile.gettempdir()
-        temp_filename = os.path.join(temp_dir, f"temp_{voice_type}_{int(time.time())}.wav")
-        
-        # Ensure the temp directory exists
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Clean up any existing file
-        if os.path.exists(temp_filename):
-            try:
-                os.remove(temp_filename)
-            except:
-                temp_filename = os.path.join(temp_dir, f"temp_{voice_type}_{int(time.time())}_{os.getpid()}.wav")
-        
-        try:
-            stream.Open(temp_filename, 3)
-            stream_opened = True
-            speaker.AudioOutputStream = stream
-            speaker.Speak(text.strip())  # Ensure text is stripped
-        except Exception as e:
-            print(f"Error during speech synthesis: {e}")
-            raise
+        temp_filename = os.path.join(temp_dir, f"temp_{voice_type}.wav")
+        stream.Open(temp_filename, 3)
+        speaker.AudioOutputStream = stream
+        speaker.Speak(text)
 
-        if stream_opened:
-            stream.Close()
-            stream = None
-            stream_opened = False
-        
-        time.sleep(0.1)  # Small delay to ensure file is written
-
-        if not os.path.exists(temp_filename):
-            raise Exception(f"Failed to create audio file at {temp_filename}")
-
+        # Adjust pitch of the saved audio file while maintaining its length
         result_voice = adjust_pitch_and_octaves(temp_filename, pitch, octaves_multiplier)
-        runtime = len(result_voice) / 1000.0
-        
+        # Save the modified audio
+        # result_voice.export(filename, format="wav")
+        # Get the runtime of the sound
+        runtime = len(result_voice) / 1000.0  # Convert milliseconds to seconds
+        print(f"Runtime of the sound: {runtime:.2f} seconds")
+        # Send the runtime using websocket
         if callback:
             callback(runtime, speaker_id)
         play(result_voice)
             
     except Exception as e:
-        print(f"Error in speak_text: {str(e)}")
-        if hasattr(e, 'excepinfo'):
-            print(f"Extended error info: {e.excepinfo}")
-        raise
+        print(f"Error in speak_text: {e}")
+        # Optionally fall back to default voice
     finally:
-        if stream_opened and stream:
-            try:
-                stream.Close()
-            except:
-                pass
-        # Clean up temp file
-        if temp_filename and os.path.exists(temp_filename):
-            try:
-                os.remove(temp_filename)
-            except:
-                pass
+        if stream:
+            stream.Close()
         # Force COM cleanup
         speaker = None
         stream = None
         pythoncom.CoUninitialize()
 
 def tts_async(text, speaker_id, callback=None):
-    print(f"tts_async: text = {text}, speaker_id = {speaker_id}")
     try:
         pythoncom.CoInitialize()
         try:

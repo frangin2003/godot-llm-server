@@ -83,8 +83,8 @@ async def a_call_llm(websocket, data):
         capturing_text = False
         at_least_one_chunk_has_been_sent = False
         text = ""
-        capturing_command = False
-        command = ""
+        capturing_action = False
+        action = ""
  
         if game_socket:
             await game_socket.send("")
@@ -101,7 +101,7 @@ async def a_call_llm(websocket, data):
  
             buffer += chunk_text
             if (chunk_text.strip() == "_"
-                and buffer != "_speaker" and buffer != "_text" and buffer != "_command"):
+                and buffer != "_speaker" and buffer != "_text" and buffer != "_action"):
                 buffer = "_"
                 continue
 
@@ -116,14 +116,14 @@ async def a_call_llm(websocket, data):
                 buffer = ""  # Reset buffer after detecting keyword
                 print("Capturing text")
                 continue
-            elif buffer == "_command":
+            elif buffer == "_action":
                 capturing_text = False
-                capturing_command = True
+                capturing_action = True
                 buffer = ""  # Reset buffer after detecting keyword
-                print("Capturing command")
+                print("Capturing action")
                 continue
 
-            # Accumulate content into the response or command based on the current state
+            # Accumulate content into the response or action based on the current state
             if capturing_speaker:
                 speaker_id += chunk_text
             elif capturing_text:
@@ -137,8 +137,8 @@ async def a_call_llm(websocket, data):
                 if game_socket:
                     await game_socket.send(chunk_text)
                     await asyncio.sleep(0)
-            elif capturing_command:
-                command += chunk_text
+            elif capturing_action:
+                action += chunk_text
 
         if not at_least_one_chunk_has_been_sent:
             if game_socket:
@@ -170,14 +170,14 @@ async def a_call_llm(websocket, data):
         # Instead of creating a new thread, queue the TTS work
         tts_queue.put((text, ''.join(filter(str.isdigit, speaker_id)), tts_callback))
         
-        if command:
-            if command and command[0].isdigit():
-                command = ''.join(filter(str.isdigit, command))
+        if action:
+            if action and action[0].isdigit():
+                action = ''.join(filter(str.isdigit, action))
             else:
-                command = command.strip()
-            print(f'FINAL command=|{command}|')
+                action = action.strip()
+            print(f'FINAL action=|{action}|')
             if game_socket:
-                await game_socket.send(f"<|command|>{''.join(filter(str.isalnum, command))}")
+                await game_socket.send(f"<|action|>{''.join(filter(str.isalnum, action))}")
                 await asyncio.sleep(0)
 
         if game_socket:

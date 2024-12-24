@@ -2,7 +2,7 @@
 ## Starting the server
 ```bash
 conda activate llm-server
-python run.py 7500 llama3.1
+python run.py 7500 llama3.1 tts capture
 ```
 
 
