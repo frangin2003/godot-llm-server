@@ -12,3 +12,5 @@ dist/
 **/*.pyc
 node_modules/
 **/node_modules/
+comptes.py
+transactions.csv
