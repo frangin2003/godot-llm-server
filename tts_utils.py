@@ -4,6 +4,8 @@ import pythoncom
 from pydub import AudioSegment
 from pydub.playback import play
 import win32com.client
+import io
+import pywintypes
 
 voice_types = {
     "001": {
@@ -56,13 +58,10 @@ voice_types = {
     }
 }
 
-def adjust_pitch_and_octaves(audio_file, new_pitch=1.0, octaves_multiplier=1.0):
-    # Load audio file
-    song = AudioSegment.from_file(audio_file)
-    # Lower pitch
+def adjust_pitch_and_octaves(audio_segment, new_pitch=1.0, octaves_multiplier=1.0):
+    song = audio_segment
     octaves = new_pitch
     new_sample_rate = int(song.frame_rate * (octaves_multiplier ** octaves))
-    # Pitch shifted song is slightly slower; let's keep the same length
     deeper_voice = song._spawn(song.raw_data, overrides={'frame_rate': new_sample_rate})
     slowed_down_deeper_voice = deeper_voice.set_frame_rate(song.frame_rate)
     return slowed_down_deeper_voice
@@ -74,8 +73,8 @@ def speak_text(text, speaker_id="001", callback=None):
     stream = None
     try:
         speaker = win32com.client.Dispatch("SAPI.SpVoice")
-        stream = win32com.client.Dispatch("SAPI.SpFileStream")
-
+        stream = win32com.client.Dispatch("SAPI.SpMemoryStream")
+        
         voice_type = voice_types[speaker_id]["type"] if speaker_id in voice_types else voice_types["001"]["type"]
         print(f"The selected voice type is: {voice_type}")
         voice_id = voice_types[speaker_id]["voice_id"]
@@ -88,32 +87,69 @@ def speak_text(text, speaker_id="001", callback=None):
             speaker.Voice = voices.Item(voice_id)
         else:
             print(f"Warning: Voice ID {voice_id} not available, using default voice")
-            
-        temp_dir = tempfile.gettempdir()
-        temp_filename = os.path.join(temp_dir, f"temp_{voice_type}.wav")
-        stream.Open(temp_filename, 3)
+        
+        # Set up format for 16-bit PCM WAV using SAPI constants
+        # SAFT22kHz16BitMono = 22
+        stream.Format.Type = 22
+        
         speaker.AudioOutputStream = stream
         speaker.Speak(text)
-
-        # Adjust pitch of the saved audio file while maintaining its length
-        result_voice = adjust_pitch_and_octaves(temp_filename, pitch, octaves_multiplier)
-        # Save the modified audio
-        # result_voice.export(filename, format="wav")
+        
+        # Get raw audio data
+        data = stream.GetData()
+        
+        # Define audio format parameters based on SAFT22kHz16BitMono
+        channels = 1
+        sample_rate = 22050  # 22kHz
+        bits_per_sample = 16
+        block_align = channels * (bits_per_sample // 8)
+        avg_bytes_per_sec = sample_rate * block_align
+        
+        # Create WAV header
+        wav_header = bytearray()
+        # RIFF header
+        wav_header.extend(b'RIFF')
+        wav_header.extend((len(data) + 36).to_bytes(4, 'little'))  # File size - 8
+        wav_header.extend(b'WAVE')
+        # fmt chunk
+        wav_header.extend(b'fmt ')
+        wav_header.extend((16).to_bytes(4, 'little'))  # Chunk size
+        wav_header.extend((1).to_bytes(2, 'little'))   # Audio format (PCM)
+        wav_header.extend(channels.to_bytes(2, 'little'))
+        wav_header.extend(sample_rate.to_bytes(4, 'little'))
+        wav_header.extend(avg_bytes_per_sec.to_bytes(4, 'little'))
+        wav_header.extend(block_align.to_bytes(2, 'little'))
+        wav_header.extend(bits_per_sample.to_bytes(2, 'little'))
+        # data chunk
+        wav_header.extend(b'data')
+        wav_header.extend(len(data).to_bytes(4, 'little'))
+        
+        # Combine header and data
+        wav_data = io.BytesIO()
+        wav_data.write(wav_header)
+        wav_data.write(data)
+        wav_data.seek(0)
+        
+        # Load audio from memory
+        result_voice = AudioSegment.from_wav(wav_data)
+        
+        # Adjust pitch of the audio data
+        result_voice = adjust_pitch_and_octaves(result_voice, pitch, octaves_multiplier)
+        
         # Get the runtime of the sound
-        runtime = len(result_voice) / 1000.0  # Convert milliseconds to seconds
+        runtime = len(result_voice) / 1000.0
         print(f"Runtime of the sound: {runtime:.2f} seconds")
-        # Send the runtime using websocket
+        
         if callback:
             callback(runtime, speaker_id)
+            
         play(result_voice)
             
     except Exception as e:
         print(f"Error in speak_text: {e}")
-        # Optionally fall back to default voice
+        import traceback
+        traceback.print_exc()
     finally:
-        if stream:
-            stream.Close()
-        # Force COM cleanup
         speaker = None
         stream = None
         pythoncom.CoUninitialize()
