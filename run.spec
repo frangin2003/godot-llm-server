@@ -7,10 +7,36 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[],  # No .env file included
-    hiddenimports=['langchain_community', 'langchain_core', 'langchain_openai', 'PyAudio', 'pydub', 'dotenv', 'pywin32', 'soundfile', 'SpeechRecognition', 'websockets'],
+    hiddenimports=[
+        # Core LangChain dependencies
+        'langchain_community',
+        'langchain_core',
+        'langchain_openai',
+        
+        # Audio processing
+        'PyAudio',  # Required by SpeechRecognition
+        'pydub',
+        'soundfile',
+        'speech_recognition',
+        
+        # Windows-specific
+        'pythoncom',
+        'win32com',
+        'win32com.client',
+        
+        # Web communication
+        'websockets',
+        
+        # Environment and config
+        'dotenv',
+        
+        # Image processing
+        'PIL',
+        'PIL._imaging'
+    ],
     hookspath=[],
     runtime_hooks=[],
-    excludes=['torchvision', 'torchaudio', 'pip-review'],  # Exclude unnecessary components
+    excludes=['torchvision', 'torchaudio', 'pip-review'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

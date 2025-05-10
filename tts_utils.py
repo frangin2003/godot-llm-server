@@ -1,11 +1,8 @@
-import os
-import tempfile
 import pythoncom
 from pydub import AudioSegment
 from pydub.playback import play
 import win32com.client
 import io
-import pywintypes
 
 voice_types = {
     "001": {

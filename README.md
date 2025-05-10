@@ -133,3 +133,8 @@ Sure, here's a cheat sheet for some common Conda commands:
     ```
 
 Remember to replace `myenv` with the name of your environment and `numpy` with the name of the package you want to install or remove.
+
+# Build a .exe
+```bash
+pyinstaller run.spec
+```
