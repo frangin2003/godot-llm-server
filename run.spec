@@ -16,7 +16,7 @@ a = Analysis(
         # Audio processing
         'PyAudio',  # Required by SpeechRecognition
         'pydub',
-        'soundfile',
+        'winsound',
         'speech_recognition',
         
         # Windows-specific
