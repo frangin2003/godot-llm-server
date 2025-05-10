@@ -1,4 +1,3 @@
-import pythoncom
 import asyncio
 import websockets
 import json
@@ -38,7 +37,6 @@ tts_thread = None
 should_stop = False
 
 def tts_worker():
-    pythoncom.CoInitialize()
     """Single worker thread to handle all TTS requests"""
     while not should_stop:
         try:
@@ -59,9 +57,6 @@ def tts_worker():
             print(f"Error in TTS worker: {e}")
             import traceback
             traceback.print_exc()
-
-        finally:
-            pythoncom.CoUninitialize()
 
 async def a_call_llm(websocket, data):
     global tts_thread

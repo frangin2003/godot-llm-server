@@ -1,6 +1,6 @@
 import pythoncom
 from pydub import AudioSegment
-from pydub.playback import play
+import winsound
 import win32com.client
 import io
 
@@ -65,7 +65,9 @@ def adjust_pitch_and_octaves(audio_segment, new_pitch=1.0, octaves_multiplier=1.
 
 
 def speak_text(text, speaker_id="001", callback=None):
+    print("Initializing COM...")
     pythoncom.CoInitialize()
+    print("COM initialized")
     speaker = None
     stream = None
     try:
@@ -91,7 +93,6 @@ def speak_text(text, speaker_id="001", callback=None):
         
         speaker.AudioOutputStream = stream
         speaker.Speak(text)
-        
         # Get raw audio data
         data = stream.GetData()
         
@@ -139,8 +140,16 @@ def speak_text(text, speaker_id="001", callback=None):
         
         if callback:
             callback(runtime, speaker_id)
-            
-        play(result_voice)
+        
+        print("Attempting to play audio with winsound...")
+        # Export the final AudioSegment to an in-memory WAV byte stream
+        wav_export_stream = io.BytesIO()
+        result_voice.export(wav_export_stream, format="wav")
+        wav_bytes_for_winsound = wav_export_stream.getvalue()
+        
+        # Play WAV bytes from memory. This is a blocking call.
+        winsound.PlaySound(wav_bytes_for_winsound, winsound.SND_MEMORY | winsound.SND_NODEFAULT)
+        print("Audio playback with winsound completed.")
             
     except Exception as e:
         print(f"Error in speak_text: {e}")
@@ -149,24 +158,15 @@ def speak_text(text, speaker_id="001", callback=None):
     finally:
         speaker = None
         stream = None
+        print("Uninitializing COM...")
         pythoncom.CoUninitialize()
+        print("COM uninitialized")
 
 def tts_async(text, speaker_id, callback=None):
     try:
-        pythoncom.CoInitialize()
-        try:
-            print("Attempting to speak new response...")
-            speak_text(text, speaker_id, callback)
-            print("Speaking complete.")
-        except Exception as e:
-            print(f"Error in speak_text: {e}")
-            import traceback
-            traceback.print_exc()
-        finally:
-            try:
-                pythoncom.CoUninitialize()
-            except:
-                print("Error uninitializing COM")
+        print("Attempting to speak new response...")
+        speak_text(text, speaker_id, callback)
+        print("Speaking complete.")
     except Exception as e:
         print(f"Error in tts_async: {e}")
         import traceback
